@@ -2,7 +2,7 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { Class, Subject, Teacher } from "@/generated/prisma/client";
+import { Class, Prisma, Subject, Teacher } from "@/generated/prisma/client";
 import { role } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
@@ -97,8 +97,26 @@ const TeacherListPage = async({searchParams}: {searchParams: {[key: string]: str
   const {page, ...queryParams} = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const query: Prisma.TeacherWhereInput = {};
+
+  if(queryParams) {
+    for(const [key, value] of Object.entries(queryParams)) {
+      if(value !== undefined) {
+        switch(key) {
+          case 'classId':
+            query.lessons = {some: {classId: parseInt(value)}}
+            break;
+          case 'search':
+            query.name = {contains: value, mode: 'insensitive'}
+        }
+      }
+      
+    }
+  }
+
   const [teachersData, count] = await prisma.$transaction([
     prisma.teacher.findMany({
+      where: query,
       include: {
         subjects: true,
         classes: true
@@ -106,7 +124,7 @@ const TeacherListPage = async({searchParams}: {searchParams: {[key: string]: str
       take: 10,
       skip: 10 * (p-1)
     }),
-    prisma.teacher.count()
+    prisma.teacher.count({where: query})
   ])
   
 
