@@ -3,8 +3,8 @@ import BigCalendar from "@/components/BigCalender";
 import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";
 import { Teacher } from "@/generated/prisma/client";
-import { role } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,6 +14,10 @@ const SingleTeacherPage = async ({
 }: {
   params: { id: string };
 }) => {
+  const { userId, sessionClaims } = auth();
+  const role = sessionClaims?.role;
+  const currentUserId = userId;
+  
   const teacher:
     | (Teacher & {
         _count: { subjects: number; lessons: number; classes: number };

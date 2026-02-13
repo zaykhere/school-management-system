@@ -3,6 +3,7 @@ import BigCalendar from "@/components/BigCalender";
 import Performance from "@/components/Performance";
 import { Class, Student } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,8 +13,8 @@ const SingleStudentPage = async ({
 }: {
   params: { id: string };
 }) => {
-  // const { sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const { userId, sessionClaims } = auth();
+  const role = sessionClaims?.role;
 
   const student:
     | (Student & {
