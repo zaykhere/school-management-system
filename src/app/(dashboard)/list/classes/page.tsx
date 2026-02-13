@@ -3,65 +3,77 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { Class, Prisma, Teacher } from "@/generated/prisma/client";
-import { role } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import { auth } from "@clerk/nextjs/server";
 
 type ClassList = Class & { supervisor: Teacher };
 
-const columns = [
-  {
-    header: "Class Name",
-    accessor: "name",
-  },
-  {
-    header: "Capacity",
-    accessor: "capacity",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Supervisor",
-    accessor: "supervisor",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
-];
-
-const renderRow = (item: ClassList) => (
-  <tr
-    key={item.id}
-    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-  >
-    <td className="flex items-center gap-4 p-4">{item.name}</td>
-    <td className="hidden md:table-cell">{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.name[0]}</td>
-    <td className="hidden md:table-cell">
-      {item.supervisor.name + " " + item.supervisor.surname}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            {/* <FormContainer table="class" type="update" data={item} />
-            <FormContainer table="class" type="delete" id={item.id} /> */}
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
-
 const ClassListPage = async ({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const {page, ...queryParams} = searchParams;
+  const { userId, sessionClaims } = auth();
+  const role = sessionClaims?.role;
+  const currentUserId = userId;
+
+  const columns = [
+    {
+      header: "Class Name",
+      accessor: "name",
+    },
+    {
+      header: "Capacity",
+      accessor: "capacity",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Grade",
+      accessor: "grade",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Supervisor",
+      accessor: "supervisor",
+      className: "hidden md:table-cell",
+    },
+    ...(role === "admin"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
+  ];
+  
+  
+  const renderRow = (item: ClassList) => (
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    >
+      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="hidden md:table-cell">{item.capacity}</td>
+      <td className="hidden md:table-cell">{item.name[0]}</td>
+      <td className="hidden md:table-cell">
+        {item.supervisor.name + " " + item.supervisor.surname}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              {/* <FormContainer table="class" type="update" data={item} />
+              <FormContainer table="class" type="delete" id={item.id} /> */}
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
+  const { page, ...queryParams } = searchParams;
+
   const p = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
 
   const query: Prisma.ClassWhereInput = {};
 
@@ -82,7 +94,7 @@ const ClassListPage = async ({searchParams}: {searchParams: {[key: string]: stri
     }
   }
 
-  const [classesData, count] = await prisma.$transaction([
+  const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
       where: query,
       include: {
@@ -114,7 +126,7 @@ const ClassListPage = async ({searchParams}: {searchParams: {[key: string]: stri
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={classesData} />
+      <Table columns={columns} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>
